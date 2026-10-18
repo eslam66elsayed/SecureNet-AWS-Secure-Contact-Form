@@ -1,11 +1,55 @@
-# VPC and Subnets
+# 02 — VPC and Subnets Configuration
 
-VPC CIDR: `10.0.0.0/16`
+## Create VPC
 
-Public: `10.0.1.0/24`, `10.0.2.0/24`
+AWS Console:
+VPC → Your VPCs → Create VPC
 
-Private App: `10.0.11.0/24`, `10.0.12.0/24`
+Use:
 
-Private DB: `10.0.21.0/24`, `10.0.22.0/24`
+```text
+Name: Secure-Network-VPC
+IPv4 CIDR: 10.0.0.0/16
+```
 
-A subnet is public because its route table provides a route to an Internet Gateway. The app and database tiers are private to prevent direct internet exposure and reduce attack surface.
+## Public Subnets
+
+```text
+Public-Subnet-1
+AZ: us-east-1a
+CIDR: 10.0.1.0/24
+
+Public-Subnet-2
+AZ: us-east-1b
+CIDR: 10.0.2.0/24
+```
+
+## Private Application Subnets
+
+```text
+Private-App-Subnet-1
+AZ: us-east-1a
+CIDR: 10.0.11.0/24
+
+Private-App-Subnet-2
+AZ: us-east-1b
+CIDR: 10.0.12.0/24
+```
+
+## Private Database Subnets
+
+```text
+Private-DB-Subnet-1
+AZ: us-east-1a
+CIDR: 10.0.21.0/24
+
+Private-DB-Subnet-2
+AZ: us-east-1b
+CIDR: 10.0.22.0/24
+```
+
+Public subnets are for internet-facing infrastructure.
+
+Private application subnets protect the backend.
+
+Private database subnets protect RDS.

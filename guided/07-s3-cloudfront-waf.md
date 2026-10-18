@@ -1,14 +1,39 @@
-# S3, CloudFront and WAF
+# 07 — S3, CloudFront and WAF
 
-S3 stores the frontend and remains private. CloudFront accesses it through Origin Access Control.
+## S3
 
-Typical CloudFront routing:
+Frontend bucket:
+
+`secure-network-origin-123`
+
+Upload:
 
 ```text
-Default -> S3
-/api/* -> ALB
+index.html
+style.css
+script.js
 ```
 
-API caching should not be used for POST requests.
+S3 is used as the frontend origin.
 
-WAF inspects HTTP requests and can block malicious patterns. Shield Standard provides baseline DDoS protection for supported AWS services.
+## CloudFront
+
+Distribution ID:
+
+`E1YUP14VLB6ENI`
+
+CloudFront provides HTTPS, CDN delivery, caching and WAF integration.
+
+## WAF
+
+Associate AWS WAF with CloudFront.
+
+Use appropriate managed protections such as common web attack rules and rate-based protection.
+
+WAF helps protect against common malicious web requests.
+
+## Shield
+
+AWS Shield provides DDoS protection.
+
+CloudFront and AWS infrastructure provide baseline protection, while Shield Advanced can add additional capabilities when required.

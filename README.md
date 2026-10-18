@@ -1,28 +1,178 @@
 # SecureNet AWS Secure Contact Form
 
-Secure, highly available AWS contact-form application using CloudFront, private S3, WAF, ALB, private EC2 Flask/Gunicorn application servers, private RDS MySQL, SNS, SSM, VPC endpoints, Flow Logs, Athena, CloudWatch, and Transit Gateway.
+A secure AWS contact form application using a multi-tier architecture.
 
 ## Architecture
 
 ```text
-User -> CloudFront + WAF
-          |-> private S3 frontend (OAC)
-          |-> /api/* -> ALB -> private EC2 #1/#2 -> RDS MySQL
-                                            |
-                                            +-> SNS admin notification
-
-Private administration: SSM Session Manager -> SSM/SSMMessages interface endpoints
-Private AWS access: S3 Gateway VPC Endpoint
-Observability: VPC Flow Logs -> S3 -> Athena, CloudWatch metrics/alarms
-Networking: VPC 10.0.0.0/16 <-> Transit Gateway <-> VPC 10.1.0.0/16
+Internet
+   |
+CloudFront
+   |
+S3 Frontend
+   |
+ALB
+   |
+Private EC2 (Flask/Gunicorn)
+   |
+Private RDS MySQL
+   |
+SNS Notification
 ```
 
-## Repository structure
+## AWS Services
+
+- Amazon VPC
+- Public and Private Subnets
+- Internet Gateway
+- Application Load Balancer
+- EC2
+- RDS MySQL
+- S3
+- CloudFront
+- AWS WAF
+- AWS Shield
+- Systems Manager
+- VPC Endpoints
+- SNS
+- VPC Flow Logs
+- Athena
+- CloudWatch
+- Transit Gateway
+- IAM
+
+## Network
+
+VPC: `10.0.0.0/16`
+
+Public subnets:
+- `10.0.1.0/24` — us-east-1a
+- `10.0.2.0/24` — us-east-1b
+
+Private application subnets:
+- `10.0.11.0/24` — us-east-1a
+- `10.0.12.0/24` — us-east-1b
+
+Private database subnets:
+- `10.0.21.0/24` — us-east-1a
+- `10.0.22.0/24` — us-east-1b
+
+## Backend
+
+The backend uses Python, Flask, Gunicorn and systemd.
+
+Application port: `5000`
+
+Endpoints:
+
+```text
+GET  /health
+POST /api/contact
+```
+
+Two EC2 instances host the backend in private application subnets.
+
+## Database
+
+RDS MySQL is deployed in private database subnets.
+
+Database:
+`securenet`
+
+Port:
+`3306`
+
+Table:
+`contact_messages`
+
+The RDS security group allows MySQL traffic only from the EC2 application security group.
+
+## ALB
+
+The Application Load Balancer distributes traffic to the EC2 instances.
+
+Target port: `5000`
+
+Health check:
+
+```text
+/health
+```
+
+## S3 and CloudFront
+
+S3 stores the static frontend:
+
+```text
+index.html
+style.css
+script.js
+```
+
+CloudFront provides HTTPS, CDN delivery, caching and WAF integration.
+
+## WAF and Shield
+
+AWS WAF protects the web application from common malicious requests.
+
+AWS Shield provides DDoS protection.
+
+## Systems Manager
+
+Systems Manager Session Manager is used to administer private EC2 instances without exposing SSH to the Internet.
+
+Configured interface endpoints include:
+
+```text
+com.amazonaws.us-east-1.ssm
+com.amazonaws.us-east-1.ssmmessages
+```
+
+An S3 Gateway Endpoint is also configured.
+
+## SNS
+
+SNS topic:
+
+`SecureNet-Admin-Notifications`
+
+After the database transaction succeeds, the application publishes a notification to SNS.
+
+## Monitoring
+
+CloudWatch monitors infrastructure metrics and alarms.
+
+VPC Flow Logs are delivered to S3 and can be analyzed with Athena.
+
+## Transit Gateway
+
+The project demonstrates connectivity between:
+
+```text
+Main VPC:    10.0.0.0/16
+Second VPC:  10.1.0.0/16
+```
+
+using AWS Transit Gateway.
+
+## Security Principles
+
+- Least privilege
+- Network segmentation
+- Private application servers
+- Private database
+- Security Group references
+- Systems Manager instead of public SSH
+- VPC endpoints
+- WAF and Shield
+- Flow Logs and CloudWatch
+- Secrets excluded from Git
+
+## Project Structure
 
 ```text
 SecureNet-AWS-Secure-Contact-Form/
 ├── README.md
-├── .gitignore
 ├── frontend/
 │   ├── index.html
 │   ├── style.css
@@ -31,112 +181,14 @@ SecureNet-AWS-Secure-Contact-Form/
 │   ├── app.py
 │   ├── requirements.txt
 │   ├── .env.example
-│   └── systemd/contact-api.service
-├── images/
-│   ├── architecture.svg
-│   └── README.md
-└── guided/
-    ├── 00-resource-reference.md
-    ├── 01-project-overview.md
-    ├── 02-vpc-and-subnets.md
-    ├── 03-security-groups-and-routing.md
-    ├── 04-ec2-backend.md
-    ├── 05-alb.md
-    ├── 06-rds.md
-    ├── 07-s3-cloudfront-waf.md
-    ├── 08-ssm-and-vpc-endpoints.md
-    ├── 09-flow-logs-athena-cloudwatch.md
-    ├── 10-sns.md
-    ├── 11-transit-gateway.md
-    ├── 12-testing.md
-    └── 13-interview-questions.md
+│   └── systemd/
+│       └── contact-api.service
+├── guided/
+└── images/
 ```
 
-## Application flow
+## Author
 
-1. User opens CloudFront.
-2. CloudFront serves the private S3 frontend through OAC.
-3. Frontend sends `POST /api/contact`.
-4. CloudFront routes `/api/*` to the ALB.
-5. ALB forwards to a healthy private EC2 target on port 5000.
-6. Flask validates the request.
-7. Flask inserts into RDS table `contact_messages`.
-8. After commit, SNS publishes the admin notification.
-9. API returns the result to the frontend.
-
-## Environment variables
-
-```env
-DB_HOST=your-rds-endpoint
-DB_PORT=3306
-DB_NAME=securenet
-DB_USER=admin
-DB_PASSWORD=your-password
-AWS_REGION=us-east-1
-SNS_TOPIC_ARN=arn:aws:sns:us-east-1:ACCOUNT_ID:SecureNet-Admin-Notifications
-```
-
-Never commit `.env`, passwords, access keys, or private keys.
-
-## Database table
-
-```sql
-CREATE TABLE IF NOT EXISTS contact_messages (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(120) NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    subject VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-## Backend
-
-The application uses Flask + Gunicorn and listens on port 5000.
-
-```bash
-gunicorn --workers 3 --bind 0.0.0.0:5000 app:app
-```
-
-Health check:
-
-```bash
-curl http://127.0.0.1:5000/health
-```
-
-## Security model
-
-```text
-Internet -> ALB SG -> App SG:5000 -> RDS SG:3306
-```
-
-EC2 instances are private and are administered with SSM Session Manager instead of public SSH. RDS has Public Access disabled. S3 blocks public access and is accessed by CloudFront OAC.
-
-## Known project values
-
-- Region: `us-east-1`
-- VPC: `Secure-Network-VPC`
-- VPC CIDR: `10.0.0.0/16`
-- Public subnets: `10.0.1.0/24`, `10.0.2.0/24`
-- Private app subnets: `10.0.11.0/24`, `10.0.12.0/24`
-- Private DB subnets: `10.0.21.0/24`, `10.0.22.0/24`
-- S3 bucket: `secure-network-origin-123`
-- CloudFront distribution ID: `E1YUP14VLB6ENI`
-- ALB DNS: `contactform-ALB-1366953573.us-east-1.elb.amazonaws.com`
-- RDS endpoint: `secure-rds.c6tem6koux1i.us-east-1.rds.amazonaws.com`
-- RDS DB: `securenet`
-- RDS user: `admin`
-- RDS port: `3306`
-- SNS topic: `SecureNet-Admin-Notifications`
-
-## Upload to GitHub
-
-```bash
-git init
-git add .
-git commit -m "Initial SecureNet AWS project"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/SecureNet-AWS-Secure-Contact-Form.git
-git push -u origin main
-```
+Eslam Elsayed  
+Communications and Networks Engineering Student  
+Cloud Computing & AWS Security Trainee

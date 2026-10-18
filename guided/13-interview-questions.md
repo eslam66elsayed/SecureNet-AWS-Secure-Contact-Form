@@ -1,43 +1,97 @@
-# Discussion Questions
+# 13 — Interview Questions
 
-### Why private EC2?
-To avoid direct internet exposure and force application traffic through controlled entry points.
+## Why VPC?
 
-### Why ALB?
-HTTP load balancing and health checks across multiple application servers.
+To isolate and control the application's network.
 
-### Why private RDS?
-The database should only be reachable by the application tier.
+## Why multiple subnets?
 
-### Why Security Groups?
-Stateful resource-level network filtering.
+To separate public, application and database layers and improve availability across Availability Zones.
 
-### Why SSM instead of SSH?
-Managed administration without exposing port 22 publicly.
+## Why private EC2?
 
-### Why VPC endpoints?
-Private connectivity from private subnets to supported AWS services.
+The backend does not need direct Internet access. The ALB receives user traffic and forwards it to EC2.
 
-### Is S3 Gateway Endpoint the same as PrivateLink?
-No. S3 Gateway Endpoint is route-table based; interface endpoints use PrivateLink and ENIs.
+## Why ALB?
 
-### Why CloudFront?
-Edge delivery, HTTPS, central entry point, and integration with WAF.
+For load balancing, health checks and high availability.
 
-### Why WAF?
-Layer-7 HTTP request filtering.
+## Why `/health`?
 
-### Why Flow Logs?
-Network visibility and investigation of accepted/rejected traffic.
+The ALB uses it to determine whether an EC2 target is healthy.
 
-### Why SNS?
-Decoupled administrator notifications.
+## Why RDS?
 
-### What if one EC2 fails?
-ALB health checks remove the unhealthy target and continue with the healthy target.
+RDS provides a managed relational database instead of manually managing MySQL on EC2.
 
-### What if RDS fails?
-New submissions cannot be persisted; the application returns an error and monitoring should expose the failure.
+## Why private RDS?
 
-### What is defense in depth?
-Multiple independent controls across network, identity, application, edge, and monitoring layers.
+To prevent direct Internet access to the database.
+
+## Why only EC2 → RDS on 3306?
+
+Because only the backend needs database access. This follows least privilege.
+
+## Why Systems Manager?
+
+To manage private EC2 instances without exposing SSH.
+
+## What is PrivateLink?
+
+PrivateLink provides private connectivity to supported AWS services through interface VPC endpoints. In this project it is used for Systems Manager endpoints.
+
+## Why S3 Gateway Endpoint?
+
+To provide private access from the VPC to S3 without requiring a public Internet route.
+
+## Why CloudFront?
+
+For CDN delivery, HTTPS, caching and WAF integration.
+
+## WAF vs Shield?
+
+WAF operates at the web request/application layer. Shield provides DDoS protection.
+
+## Why SNS?
+
+To notify the administrator after a successful contact submission.
+
+## Why commit RDS before SNS?
+
+So a notification failure does not cause a successful database submission to be lost.
+
+## Why environment variables?
+
+To avoid hardcoding configuration and secrets.
+
+## Why Gunicorn?
+
+Flask's built-in server is for development. Gunicorn is a production WSGI server.
+
+## Why systemd?
+
+To manage the application as a Linux service and start it automatically.
+
+## What happens if one EC2 fails?
+
+The ALB health check detects the unhealthy target and stops routing traffic to it.
+
+## Why Flow Logs?
+
+For network visibility, troubleshooting and security investigations.
+
+## Why Athena?
+
+To query Flow Logs stored in S3 using SQL.
+
+## Why CloudWatch?
+
+For monitoring metrics and creating alarms.
+
+## Why Transit Gateway?
+
+For centralized connectivity between multiple VPCs.
+
+## Most important security principle?
+
+Least privilege: each component should have only the network and AWS permissions it needs.

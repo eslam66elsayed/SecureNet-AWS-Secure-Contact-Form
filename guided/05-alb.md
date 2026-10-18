@@ -1,7 +1,44 @@
-# Application Load Balancer
+# 05 — Application Load Balancer
 
-The ALB receives HTTP application traffic and forwards it to the target group on port `5000`.
+## Target Group
 
-Health check: `/health`.
+Create an Instance target group.
 
-If an EC2 target becomes unhealthy, the ALB removes it from normal traffic distribution and uses healthy targets.
+```text
+Protocol: HTTP
+Port: 5000
+Health Check Path: /health
+```
+
+Register both EC2 instances.
+
+## ALB
+
+Create an Internet-facing Application Load Balancer.
+
+Use the two public subnets:
+
+```text
+us-east-1a
+us-east-1b
+```
+
+Attach the ALB security group.
+
+Forward traffic to the target group.
+
+## Verify
+
+Both targets should be:
+
+```text
+Healthy
+```
+
+Test:
+
+```bash
+curl http://<ALB-DNS>/health
+```
+
+ALB provides load balancing, health checks and higher availability.

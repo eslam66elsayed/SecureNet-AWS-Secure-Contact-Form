@@ -1,9 +1,39 @@
-# Transit Gateway
+# 11 — Transit Gateway
 
-Main VPC: `10.0.0.0/16`.
+## Networks
 
-Second VPC: `10.1.0.0/16`.
+Main VPC:
 
-The main VPC route table sends `10.1.0.0/16` to the Transit Gateway. The second VPC sends `10.0.0.0/16` to the Transit Gateway.
+`10.0.0.0/16`
 
-Transit Gateway provides centralized private connectivity and scales better than maintaining many individual VPC peering relationships as the network grows.
+Connected VPC:
+
+`10.1.0.0/16`
+
+## Architecture
+
+```text
+VPC 10.0.0.0/16
+        |
+Transit Gateway
+        |
+VPC 10.1.0.0/16
+```
+
+Transit Gateway provides centralized connectivity between VPCs.
+
+Required routes must point the opposite VPC CIDR toward the Transit Gateway.
+
+Example:
+
+```text
+10.1.0.0/16 → Transit Gateway
+```
+
+and:
+
+```text
+10.0.0.0/16 → Transit Gateway
+```
+
+Transit Gateway does not bypass Security Groups or Network ACLs. Routing and security controls must both allow the traffic.

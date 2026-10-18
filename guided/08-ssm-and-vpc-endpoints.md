@@ -1,14 +1,35 @@
-# SSM and VPC Endpoints
+# 08 — Systems Manager and VPC Endpoints
 
-EC2 administration uses Systems Manager Session Manager instead of public SSH.
+## Systems Manager
 
-Interface endpoints:
+Use Session Manager to access private EC2 instances.
 
-- `com.amazonaws.us-east-1.ssm`
-- `com.amazonaws.us-east-1.ssmmessages`
+This avoids exposing SSH to the Internet.
 
-The endpoint Security Group must allow TCP 443 from the EC2/App Security Group. Private DNS should be enabled.
+The EC2 instance requires an IAM role with the required Systems Manager permissions, commonly including:
 
-S3 uses a Gateway VPC Endpoint, which is different from PrivateLink interface endpoints.
+`AmazonSSMManagedInstanceCore`
 
-Troubleshooting Session Manager: confirm the node is online, IAM role includes `AmazonSSMManagedInstanceCore`, endpoints are Available, endpoint SG allows 443, and DNS/network settings are correct.
+## Interface Endpoints
+
+Configured:
+
+```text
+com.amazonaws.us-east-1.ssm
+com.amazonaws.us-east-1.ssmmessages
+```
+
+## S3 Gateway Endpoint
+
+An S3 Gateway Endpoint is also configured.
+
+VPC endpoints provide private access to supported AWS services.
+
+## Test Session
+
+From Session Manager:
+
+```bash
+hostname
+sudo systemctl status contact-api --no-pager
+```

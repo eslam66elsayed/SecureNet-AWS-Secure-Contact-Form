@@ -1,5 +1,46 @@
-# Project Overview
+# 01 — Project Overview
 
-SecureNet is a layered AWS contact-form application. The frontend is private S3 content delivered by CloudFront. API traffic is routed through CloudFront to an ALB, then to private EC2 Flask servers. Flask writes to private RDS MySQL and publishes an SNS notification after the database commit.
+## Objective
 
-The project demonstrates defense in depth: network segmentation, Security Groups, IAM roles, private endpoints, WAF, logging, monitoring, and controlled VPC-to-VPC connectivity.
+Build a secure AWS contact form using a multi-tier architecture.
+
+The application is divided into:
+
+1. Frontend
+2. Application layer
+3. Database layer
+
+## Request Flow
+
+```text
+User
+ |
+ v
+CloudFront
+ |
+ v
+Frontend
+ |
+ v
+ALB
+ |
+ v
+EC2 Flask Backend
+ |
+ +----> RDS MySQL
+ |
+ +----> SNS
+          |
+          v
+       Administrator
+```
+
+## Why this design?
+
+The frontend, application and database are separated.
+
+The backend is private and receives traffic through the ALB.
+
+The database is private and accepts connections only from the application layer.
+
+Two Availability Zones are used for the application tier.

@@ -1,24 +1,53 @@
-# RDS MySQL
+# 06 — RDS MySQL Configuration
 
-RDS is private and listens on TCP 3306. Database: `securenet`; user: `admin`.
+## DB Subnet Group
 
-Table:
+Use:
 
-```sql
-CREATE TABLE IF NOT EXISTS contact_messages (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(120) NOT NULL,
-  email VARCHAR(255) NOT NULL,
-  subject VARCHAR(255) NOT NULL,
-  message TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+```text
+10.0.21.0/24
+10.0.22.0/24
 ```
 
-Connect from an approved application/admin host:
+## Database
 
-```bash
-mysql -h YOUR_RDS_ENDPOINT -P 3306 -u admin -p
+```text
+Engine: MySQL
+Database: securenet
+Port: 3306
 ```
 
-RDS is private so the database is not directly exposed to the internet.
+The database must not be publicly accessible.
+
+## Security Group
+
+Allow:
+
+```text
+TCP 3306
+Source: EC2 Security Group
+```
+
+The main table is:
+
+```text
+contact_messages
+```
+
+Typical fields:
+
+```text
+id
+name
+email
+message
+created_at
+```
+
+The user never connects directly to RDS.
+
+Request flow:
+
+```text
+CloudFront → ALB → EC2 → RDS
+```
